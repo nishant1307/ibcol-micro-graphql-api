@@ -1,0 +1,18 @@
+{
+  "name": "ibcol-micro-graphql-api-stage",
+  "alias": [
+    "uat.api.ibcol.org"
+  ],
+  "env": {
+    "ENV": "stage",
+    "NODE_ENV": "production",
+    "MONGO_URL": "@ibcol-mongo-url-stage"
+  },
+  "type": "npm",
+  "scale": {
+    "sfo1": {
+      "min": 0,
+      "max": 1
+    }
+  }
+}
