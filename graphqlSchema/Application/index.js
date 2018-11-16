@@ -1,6 +1,42 @@
 const _ = require('lodash');
 const Application = require('./dbSchema.js');
+const randomstring = require("randomstring");
 
+
+const getApplicationByRef = (ref) => {
+  return Application.findOne({ ref });
+}
+
+
+const generateUniqueReference = async () => {
+  const ref = `${randomstring.generate({
+    length: 3,
+    charset: 'alphabetic',
+    capitalization: 'uppercase',
+    readable: true
+  })}-${randomstring.generate({
+    length: 10,
+    charset: 'alphanumeric',
+    capitalization: 'uppercase',
+    readable: true
+  })}`;
+
+  
+
+  const existingApplication = await getApplicationByRef(ref);
+  console.log('existingApplication', existingApplication);
+
+  console.log('ref', ref);
+
+
+  if (existingApplication !== null) {
+    return generateUniqueReference();
+  } else {
+    return ref;
+  }
+
+  
+}
 
 
 const typeDefs = `
@@ -86,10 +122,12 @@ const typeDefs = `
 
   type Application {
     id: ID!
+    ref: String!
     teamName: String!
     studentRecords: [StudentRecord!]!
     advisorRecords: [AdvisorRecord]
     projectRecords: [ProjectRecord!]!
+    verificationKeys: [VerificationKey]!
     meta: ApplicationMeta
   }
 
@@ -144,29 +182,13 @@ const typeDefs = `
     deletedAt: Date
   }
 
+  type VerificationKey {
+    publicKey: String!
+    password: String!
+  }
+
 `;
 
-
-const translateRecord = (record, locale) => {
-
-  return Object.assign({}, record, {
-    localisedContent: {
-      locale: locale,
-      title: translate(record.title, locale),
-      fields: record.fields.map((field) => {
-        return Object.assign({}, field, {
-          value: translate(field.value, locale)
-        })
-      }),
-      seo: {
-        title: _.isEmpty(record.seo.title) ? "" : translate(record.seo.title, locale),
-        description: _.isEmpty(record.seo.description) ? "" : translate(record.seo.description, locale),
-        tags: _.isEmpty(record.seo.tags) ? "" : translate(record.seo.tags, locale),
-        image: _.isEmpty(record.seo.image) ? "" : translate(record.seo.image, locale)
-      }
-    }
-  });
-}
 
 
 
@@ -313,11 +335,15 @@ const resolvers = {
         if (!_.isEmpty(record)) {
           throw(`Application with team name ${application.teamName} already exists.`);
         }
-      }).then(() => {
+      }).then( async () => {
 
         // const studentRecords = [];
         // const advisorRecords = [];
         // const projectRecords = [];
+
+        const ref = await generateUniqueReference();
+
+        console.log("ref2", ref);
 
         
         
@@ -329,11 +355,18 @@ const resolvers = {
           },
           verificationKeys: [
             {
-              "publicKey": "",
-              "password": ""
+              "publicKey": ref+randomstring.generate({
+                length: 12,
+                charset: 'alphanumeric'
+              }),
+              "password": randomstring.generate({
+                length: 10,
+                readable: true,
+                charset: 'abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@_-~.?*&^%#()'
+              })
             }
           ],
-
+          ref,
           teamName: application.teamName,
           studentRecords: application.studentRecords,
           advisorRecords: application.advisorRecords,

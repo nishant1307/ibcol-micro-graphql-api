@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 var schema = new mongoose.Schema({
   teamName: String,
+  ref: String,
   studentRecords: Array,
   advisorRecords: {type: Array, default: []},
   projectRecords: {type: Array, default: []},
