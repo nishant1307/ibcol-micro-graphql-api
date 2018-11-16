@@ -83,13 +83,14 @@ const registerMutation = accountsGraphQL.resolvers.Mutation.register;
 // } = require('graphqlSchema/Translatable');
 
 const _Date = require('./graphqlSchema/Date');
-const Translatable = require('./graphqlSchema/Translatable');
-const SchemaDefinition = require('./graphqlSchema/SchemaDefinition');
-const Field = require('./graphqlSchema/Field');
-const Page = require('./graphqlSchema/Page');
-const Component = require('./graphqlSchema/Component');
-const ObjectModel = require('./graphqlSchema/ObjectModel');
-const CustomObject = require('./graphqlSchema/CustomObject');
+// const Translatable = require('./graphqlSchema/Translatable');
+// const SchemaDefinition = require('./graphqlSchema/SchemaDefinition');
+// const Field = require('./graphqlSchema/Field');
+// const Page = require('./graphqlSchema/Page');
+// const Component = require('./graphqlSchema/Component');
+// const ObjectModel = require('./graphqlSchema/ObjectModel');
+// const CustomObject = require('./graphqlSchema/CustomObject');
+const Application = require('./graphqlSchema/Application');
 
 
 const Query = `
@@ -136,13 +137,14 @@ const schema = makeExecutableSchema({
   typeDefs: [
     accountsGraphQL.typeDefs,
     _Date.typeDefs,
-    Translatable.typeDefs,
-    SchemaDefinition.typeDefs,
-    Field.typeDefs,
-    Page.typeDefs,
-    Component.typeDefs,
-    ObjectModel.typeDefs,
-    CustomObject.typeDefs,
+    // Translatable.typeDefs,
+    // SchemaDefinition.typeDefs,
+    // Field.typeDefs,
+    // Page.typeDefs,
+    // Component.typeDefs,
+    // ObjectModel.typeDefs,
+    // CustomObject.typeDefs,
+    Application.typeDefs,
 
     Query,
     Mutation
@@ -152,12 +154,13 @@ const schema = makeExecutableSchema({
   resolvers: merge(
     accountsGraphQL.resolvers,
     _Date.resolvers,
-    Field.resolvers,
-    Page.resolvers,
-    Component.resolvers,
-    ObjectModel.resolvers,
-    Translatable.resolvers,
-    CustomObject.resolvers,
+    // Field.resolvers,
+    // Page.resolvers,
+    // Component.resolvers,
+    // ObjectModel.resolvers,
+    // Translatable.resolvers,
+    // CustomObject.resolvers,
+    Application.resolvers,
     
 
 
