@@ -86,7 +86,7 @@ const typeDefs = `
     countryCode: String!
     degree: String!
     programme: String!
-    yearOfGraducation: String!
+    yearOfGraduation: String!
   }
 
   input AdvisorRecordInput {
@@ -146,7 +146,7 @@ const typeDefs = `
     countryCode: String!
     degree: String!
     programme: String!
-    yearOfGraducation: String!
+    yearOfGraduation: String!
   }
 
   type AdvisorRecord {
@@ -329,7 +329,7 @@ const resolvers = {
       const application = args.application;
       
 
-      return Application.findOne({ teamName: application.teamName, 'meta.deletedAt': { $exists: false } }).then((record) => {
+      return Application.findOne({ teamName: new RegExp(`^${application.teamName}$`, 'i'), 'meta.deletedAt': { $exists: false } }).then((record) => {
         // console.log('page', page);
 
         if (!_.isEmpty(record)) {
