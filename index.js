@@ -205,7 +205,7 @@ module.exports = cors(router(
 
 
   // GraphQL
-  options(graphqlPath, graphqlHandler),
+  // options(graphqlPath, graphqlHandler),
   post(graphqlPath, graphqlHandler),
   get(graphqlPath, graphqlHandler),
 
