@@ -10,7 +10,7 @@
     "stage": "micro-dev --dotenv local-stage.env",
     "production": "micro-dev --dotenv local-production.env",
     "deploy": "npm run deploy-stage",
-    "deploy-dev": "now --local-config=now-dev.json --team ibcol && now alias --local-config=now-dev.json --team ibcol",
+    "deploy-dev": "now --local-config=now-dev.json --team bbi && now alias --local-config=now-dev.json --team bbi",
     "deploy-stage": "now --local-config=now-stage.json --team ibcol && now alias --local-config=now-stage.json --team ibcol",
     "deploy-production": "now --local-config=now-production.json --team ibcol && now alias --local-config=now-production.json --team ibcol"
   },
