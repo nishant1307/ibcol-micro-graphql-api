@@ -1,7 +1,7 @@
 {
   "name": "ibcol-micro-graphql-api-dev",
   "alias": [
-    "ibcol-micro-graphql-api-dev.bbi.codes"
+    "ibcol-micro-graphql-api-dev.bbi.space"
   ],
   "env": {
     "ENV": "dev",
