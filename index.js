@@ -1,9 +1,19 @@
+const port = process.env.PORT === undefined ? 3000 : process.env.PORT;
+
+// if (process.env.NODE_ENV !== 'production') {
+//   require('now-env')
+// }
+// require('custom-env').env(true);
+if (process.env.NODE_ENV !== 'production') {
+  require('now-env')
+}
+
 const { makeExecutableSchema } = require('graphql-tools');
 const { merge } = require ('lodash');
 
 const { withNamespace, router, get, post, put, patch, del, head, options } = require('microrouter');
 const cors = require('micro-cors')();
-const { ApolloServer } = require('apollo-server-micro');
+const { ApolloServer } = require('apollo-server');
 
 // const { GraphQLScalarType } = require('graphql');
 
@@ -176,9 +186,11 @@ const schema = makeExecutableSchema({
 
 
 
+const graphqlPath = '/graphql';
 
 const apolloServer = new ApolloServer({
   schema,
+  subscriptionsPath: graphqlPath,
 
   // engine: {
   //   apiKey: "YOUR API KEY HERE"
@@ -191,31 +203,11 @@ const apolloServer = new ApolloServer({
     }
   }
 });
-const graphqlPath = '/graphql';
-const graphqlHandler = apolloServer.createHandler({ path: graphqlPath });
 
 
 
 
-module.exports = cors(router(
-
-  // api(get('/hello', (req, res) => 'Welcome!')),
-  // api(post('/subscribe/', mailchimpSubscribeHandler)),
-  // api(get('/mailchimp/info/', mailchimpInfoHandler)),
-
-
-  // GraphQL
-  // options(graphqlPath, graphqlHandler),
-  post(graphqlPath, graphqlHandler),
-  get(graphqlPath, graphqlHandler),
-
-
-  // notfound
-  get('/*', notfoundHandler),
-  post('/*', notfoundHandler),
-  put('/*', notfoundHandler),
-  patch('/*', notfoundHandler),
-  del('/*', notfoundHandler),
-  // head('/*', notfoundHandler)
-  // options('/*', notfoundHandler)
-));
+apolloServer.listen({ port }).then(({ url }) => {
+  
+  console.log(`🚀 Server ready at ${url}`)
+})

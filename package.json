@@ -4,11 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "now-start": "micro",
-    "start": "npm run dev -- --port 4000",
-    "dev": "micro-dev --dotenv local-dev.env",
-    "stage": "micro-dev --dotenv local-stage.env",
-    "production": "micro-dev --dotenv local-production.env",
+    "start": "npm run dev",
+    "dev": "PORT=4000 NOW_CONFIG=now-dev.json node index.js",
+    "stage": "PORT=4000 NOW_CONFIG=now-stage.json node index.js",
+    "production": "PORT=4000 NOW_CONFIG=now-production.json node index.js",
     "deploy": "npm run deploy-stage",
     "deploy-dev": "now --local-config=now-dev.json --team bbi-v2 && now alias --local-config=now-dev.json --team bbi-v2",
     "deploy-stage": "now --local-config=now-stage.json --team ibcol && now alias --local-config=now-stage.json --team ibcol",
@@ -45,7 +44,7 @@
     "@accounts/password": "^0.3.0-beta.28",
     "@accounts/rest-express": "^0.3.0-beta.28",
     "@accounts/server": "^0.3.0-beta.28",
-    "apollo-server-micro": "^2.0.0-rc.10",
+    "apollo-server": "^2.4.8",
     "chalk": "^2.4.1",
     "graphql": "^14.0.2",
     "graphql-tools": "^4.0.0",
@@ -59,7 +58,8 @@
     "randomstring": "^1.1.5"
   },
   "devDependencies": {
-    "micro-dev": "^3.0.0"
+    "micro-dev": "^3.0.0",
+    "now-env": "^3.1.0"
   },
   "bugs": {
     "url": "https://github.com/ibcol/ibcol-micro-graphql-api/issues"

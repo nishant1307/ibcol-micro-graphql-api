@@ -1,18 +1,14 @@
 {
+  "version": 2,
   "name": "ibcol-micro-graphql-api-dev",
   "alias": [
     "ibcol-micro-graphql-api-dev.bbi.space"
   ],
   "env": {
     "ENV": "dev",
-    "NODE_ENV": "production",
+    "NODE_ENV": "development",
     "MONGO_URL": "@ibcol-mongo-url-dev"
   },
-  "type": "npm",
-  "scale": {
-    "sfo1": {
-      "min": 0,
-      "max": 1
-    }
-  }
+  "builds": [{ "src": "index.js", "use": "@now/node-server" }],
+  "routes": [{ "src": "/.*", "dest": "index.js" }]
 }
