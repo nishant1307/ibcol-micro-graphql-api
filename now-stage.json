@@ -4,6 +4,7 @@
   "alias": [
     "uat.api.ibcol.org"
   ],
+  "regions": ["all"],
   "env": {
     "ENV": "stage",
     "NODE_ENV": "stage",

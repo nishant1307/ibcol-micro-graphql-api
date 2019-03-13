@@ -4,6 +4,7 @@
   "alias": [
     "ibcol-micro-graphql-api-dev.bbi.space"
   ],
+  "regions": ["all"],
   "env": {
     "ENV": "dev",
     "NODE_ENV": "development",

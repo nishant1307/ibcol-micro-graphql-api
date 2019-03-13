@@ -4,6 +4,7 @@
   "alias": [
     "api.ibcol.org"
   ],
+  "regions": ["all"],
   "env": {
     "ENV": "production",
     "NODE_ENV": "production",
