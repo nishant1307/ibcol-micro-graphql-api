@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npm run dev",
+    "start": "npm run local",
+    "local": "PORT=4000 NOW_CONFIG=now-local.json nodemon index.js",
     "dev": "PORT=4000 NOW_CONFIG=now-dev.json node index.js",
     "stage": "PORT=4000 NOW_CONFIG=now-stage.json node index.js",
     "production": "PORT=4000 NOW_CONFIG=now-production.json node index.js",
@@ -45,6 +46,7 @@
     "@accounts/rest-express": "^0.3.0-beta.28",
     "@accounts/server": "^0.3.0-beta.28",
     "apollo-server": "^2.4.8",
+    "axios": "^0.18.0",
     "chalk": "^2.4.1",
     "graphql": "^14.0.2",
     "graphql-tools": "^4.0.0",
@@ -54,11 +56,13 @@
     "micro-cors": "^0.1.0",
     "microrouter": "^3.1.3",
     "mongoose": "^5.2.17",
+    "now-micro": "^0.3.0",
     "pluralize": "^7.0.0",
     "randomstring": "^1.1.5"
   },
   "devDependencies": {
     "micro-dev": "^3.0.0",
+    "nodemon": "^1.18.11",
     "now-env": "^3.1.0"
   },
   "bugs": {
