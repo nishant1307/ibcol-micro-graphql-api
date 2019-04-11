@@ -10,9 +10,9 @@
     "stage": "PORT=4000 NOW_CONFIG=now-stage.json node index.js",
     "production": "PORT=4000 NOW_CONFIG=now-production.json node index.js",
     "deploy": "npm run deploy-stage",
-    "deploy-dev": "now --local-config=now-dev.json --team bbi-v2 && now alias --local-config=now-dev.json --team bbi-v2",
-    "deploy-stage": "now --local-config=now-stage.json --team ibcol && now alias --local-config=now-stage.json --team ibcol",
-    "deploy-production": "now --local-config=now-production.json --team ibcol && now alias --local-config=now-production.json --team ibcol"
+    "deploy-dev": "now --local-config=now-dev.json --scope bbi --target production",
+    "deploy-stage": "now --local-config=now-stage.json --scope ibcol --target production",
+    "deploy-production": "now --local-config=now-production.json --scope ibcol --target production"
   },
   "repository": {
     "type": "git",
