@@ -2,7 +2,7 @@
   "version": 2,
   "name": "ibcol-micro-graphql-api-stage",
   "alias": [
-    "uat.api.ibcol.org"
+    "api.uat.ibcol.org"
   ],
   "regions": ["all"],
   "env": {
