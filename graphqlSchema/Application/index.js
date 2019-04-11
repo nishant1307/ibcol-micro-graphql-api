@@ -1,12 +1,37 @@
 const _ = require('lodash');
 const Application = require('./dbSchema.js');
 const randomstring = require("randomstring");
-
+const axios = require('axios');
 
 const getApplicationByRef = (ref) => {
   return Application.findOne({ ref });
 }
 
+const storeFile = async (fileId) => {
+  return await axios.put(`${process.env.FILEPOND_API_URL}${process.env.FILEPOND_API_ENDPOINT}`, fileId);
+}
+
+const injectNewProjectFilesToProject = (projectRecord) => {
+  // console.log('injectNewProjectFilesToProject', projectRecord);
+
+
+  if (_.isEmpty(projectRecord.whitepaperFileIds))
+    projectRecord.whitepaperFileIds = [];
+
+  if (_.isEmpty(projectRecord.presentationFileIds))
+    projectRecord.presentationFileIds = [];
+
+  if (!_.isEmpty(projectRecord.whitepaperFileId))
+    projectRecord.whitepaperFileIds.push(projectRecord.whitepaperFileId);
+
+  if (!_.isEmpty(projectRecord.presentationFileId))
+    projectRecord.presentationFileIds.push(projectRecord.presentationFileId);
+
+  delete projectRecord.whitepaperFileId;
+  delete projectRecord.presentationFileId;
+  
+  return projectRecord;
+}
 
 const generateUniqueReference = async () => {
   const ref = `${randomstring.generate({
@@ -87,6 +112,10 @@ const typeDefs = `
     degree: String!
     programme: String!
     yearOfGraduation: String!
+    studentNumber: String
+    studentCardFrontFileId: String
+    studentCardBackFileId: String
+    transcriptFileId: String
   }
 
   input AdvisorRecordInput {
@@ -115,6 +144,8 @@ const typeDefs = `
     name: String!
     projectCategoryKey: String!
     description: String!
+    whitepaperFileId: String
+    presentationFileId: String
   }
 
 
@@ -147,6 +178,10 @@ const typeDefs = `
     degree: String!
     programme: String!
     yearOfGraduation: String!
+    studentNumber: String
+    studentCardFrontFileId: String
+    studentCardBackFileId: String
+    transcriptFileId: String
   }
 
   type AdvisorRecord {
@@ -172,6 +207,8 @@ const typeDefs = `
     name: String!
     projectCategoryKey: String!
     description: String!
+    whitepaperFileIds: [String]!
+    presentationFileIds: [String]!
   }
 
   type ApplicationMeta {
@@ -370,15 +407,39 @@ const resolvers = {
           teamName: application.teamName,
           studentRecords: application.studentRecords,
           advisorRecords: application.advisorRecords,
-          projectRecords: application.projectRecords
+          projectRecords: application.projectRecords.map(r=>injectNewProjectFilesToProject(r))
         })
       })
-      .then((record) => {
+      .then( async (record) => {
+        // process files attached in record
+
+        
+        record.studentRecords.map((studentRecord)=>{
+          studentRecord.educationRecords.map((educationRecord)=>{
+          if (!_.isEmpty(educationRecord.studentCardFrontFileId))
+            storeFile(educationRecord.studentCardFrontFileId);
+          if (!_.isEmpty(educationRecord.studentCardBackFileId))
+            storeFile(educationRecord.studentCardBackFileId);
+          if (!_.isEmpty(educationRecord.transcriptFileId))
+            storeFile(educationRecord.transcriptFileId);
+          })
+        });
+
+        record.projectRecords.map((projectRecord)=>{
+
+          projectRecord.whitepaperFileIds.map(fileId=>storeFile(fileId));
+          projectRecord.presentationFileIds.map(fileId=>storeFile(fileId));
           
+        });
+
         return record;
 
-        }
-      )
+      })
+      .then( (record) => {
+        
+        return record;
+
+      })
 
     },
 

@@ -9,8 +9,8 @@
     "ENV": "dev",
     "NODE_ENV": "development",
     "MONGO_URL": "@ibcol-mongo-url-dev",
-    "FILEPOND_API_URL": "https://ibcol-dev.bbi.space",
-    "FILEPOND_API_ENDPOINT": "/file/"
+    "FILEPOND_API_URL": "http://localhost:4004",
+    "FILEPOND_API_ENDPOINT": "/"
   },
   "builds": [{ "src": "index.js", "use": "@now/node-server" }],
   "routes": [{ "src": "/.*", "dest": "index.js" }]
