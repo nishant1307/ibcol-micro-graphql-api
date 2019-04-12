@@ -7,7 +7,7 @@
   "regions": ["iad1"],
   "env": {
     "ENV": "stage",
-    "NODE_ENV": "stage",
+    "NODE_ENV": "production",
     "MONGO_URL": "@ibcol-mongo-url-stage"
   },
   "builds": [{ "src": "index.js", "use": "@now/node-server" }],

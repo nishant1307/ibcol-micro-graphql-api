@@ -41,7 +41,9 @@ const mongoose = require('mongoose');
 console.log('mongoose:', chalk.blue('connecting to MongoDB...'));
 mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true });
 console.log('mongoose:', chalk.green('connection established.'));
-
+console.log("======================");
+console.log(process.env);
+console.log("======================");
 const connection = mongoose.connection;
 
 
@@ -196,7 +198,7 @@ const apolloServer = new ApolloServer({
   //   apiKey: "YOUR API KEY HERE"
   // }
 
-  playground: {
+  playground: (process.env.NODE_ENV === 'production') ? false : {
     settings: {
       'editor.theme': 'dark',
       'editor.cursorShape': 'line' // possible values: 'line', 'block', 'underline'
