@@ -8,7 +8,9 @@
   "env": {
     "ENV": "stage",
     "NODE_ENV": "production",
-    "MONGO_URL": "@ibcol-mongo-url-stage"
+    "MONGO_URL": "@ibcol-mongo-url-stage",
+    "FILEPOND_API_URL": "https://uat.ibcol.org",
+    "FILEPOND_API_ENDPOINT": "/file/"
   },
   "builds": [{ "src": "index.js", "use": "@now/node-server" }],
   "routes": [{ "src": "/.*", "dest": "index.js" }]
