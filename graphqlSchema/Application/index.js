@@ -8,7 +8,12 @@ const getApplicationByRef = (ref) => {
 }
 
 const storeFile = async (fileId) => {
-  return await axios.put(`${process.env.FILEPOND_API_URL}${process.env.FILEPOND_API_ENDPOINT}`, fileId);
+  console.log(`requesting to storeFile ${fileId}...`);
+
+  const result = await axios.put(`${process.env.FILEPOND_API_URL}${process.env.FILEPOND_API_ENDPOINT}`, fileId);
+  console.log(result);
+  return result;
+
 }
 
 const injectNewProjectFilesToProject = (projectRecord) => {
@@ -410,34 +415,44 @@ const resolvers = {
           projectRecords: application.projectRecords.map(r=>injectNewProjectFilesToProject(r))
         })
       })
-      .then( async (record) => {
+      .then(async (record) => {
         // process files attached in record
 
-        
+        // flatten and store
+        const tmpFiles = [];
+
         record.studentRecords.map((studentRecord)=>{
           studentRecord.educationRecords.map((educationRecord)=>{
           if (!_.isEmpty(educationRecord.studentCardFrontFileId))
-            storeFile(educationRecord.studentCardFrontFileId);
+            tmpFiles.push(educationRecord.studentCardFrontFileId);
           if (!_.isEmpty(educationRecord.studentCardBackFileId))
-            storeFile(educationRecord.studentCardBackFileId);
+            tmpFiles.push(educationRecord.studentCardBackFileId);
           if (!_.isEmpty(educationRecord.transcriptFileId))
-            storeFile(educationRecord.transcriptFileId);
+            tmpFiles.push(educationRecord.transcriptFileId);
           })
         });
 
         record.projectRecords.map((projectRecord)=>{
 
-          projectRecord.whitepaperFileIds.map(fileId=>storeFile(fileId));
-          projectRecord.presentationFileIds.map(fileId=>storeFile(fileId));
+          projectRecord.whitepaperFileIds.map((fileId)=>{tmpFiles.push(fileId)});
+          projectRecord.presentationFileIds.map((fileId)=>{tmpFiles.push(fileId)});
           
         });
 
-        return record;
 
-      })
-      .then( (record) => {
+        console.log(`${tmpFiles.length} files needed to be saved:`, tmpFiles);
         
+        for (const file of tmpFiles) {
+          const result = await storeFile(file);
+          // console.log(result);
+        }
+
+        console.log('saved record', record);
+
         return record;
+        
+
+        
 
       })
 
