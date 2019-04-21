@@ -9,8 +9,10 @@
     "ENV": "dev",
     "NODE_ENV": "development",
     "MONGO_URL": "@ibcol-mongo-url-dev",
+    "APP_URL": "https://ibcol-dev.bbi.space",
     "FILEPOND_API_URL": "https://ibcol-dev.bbi.space",
-    "FILEPOND_API_ENDPOINT": "/file/"
+    "FILEPOND_API_ENDPOINT": "/file/",
+    "SENDGRID_API_KEY": "@ibcol-sendgrid-api"
   },
   "builds": [{ "src": "index.js", "use": "@now/node-server" }],
   "routes": [{ "src": "/.*", "dest": "index.js" }]
