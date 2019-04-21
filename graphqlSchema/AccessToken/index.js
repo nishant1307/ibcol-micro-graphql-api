@@ -73,15 +73,14 @@ const axios = require('axios');
 const typeDefs = `
   extend type Query {
     hello: String
-    activateAccessToken(email: String!, seed: String!, verificationCode: String!): String
-    
     # getApplicationById(id: ID!): Application
     # getApplications(orderBy: ApplicationOrderBy): [Application]
   }
 
   extend type Mutation {
     requestAccessToken(email: String!, seed: String!): String
-    
+    verifyAccessToken(email: String!, seed: String!, verificationCode: String!): AccessToken
+
     # updateApplication(id: ID!, slug: String!, locale: String!, localisedPageInput: LocalisedPageInput, schemaDefinitionInputs: [SchemaDefinitionInput], localisedFieldInputs: [LocalisedFieldInput], unlocalisedFieldInputs: [UnlocalisedFieldInput]): Application
 
     # deleteApplicationById(id: ID!): Application
@@ -307,7 +306,7 @@ const resolvers = {
         verificationCode
       });
 
-      const link = `${process.env.APP_URL}/registration/verify/${accessToken._id.toString()}/${accessToken.verificationCode}/${encodeURI(accessToken.email)}`;
+      const link = `${process.env.APP_URL}/registration/verify/${accessToken.verificationCode}/${accessToken.email.replace('@', '%40')}`;
 
 
       const msg = {
@@ -349,6 +348,113 @@ const resolvers = {
       const sgResult = await sgMail.send(msg);
       
       return accessToken.email;
+
+    },
+    verifyAccessToken: async (root, args, context, info) => {
+      console.log('verifyAccessToken', args);
+      
+
+      let current = Date.now();
+
+      
+      const email = args.email.trim();
+      const seed = args.seed.trim();
+      const verificationCode = args.verificationCode.trim();
+
+      if (!_.isEmail(email)) {
+        throw('The email address is invalid.');
+      }
+
+      if (_.isEmpty(seed)) {
+        throw(`Seed cannot be empty.`);
+      }
+
+      if (_.isEmpty(verificationCode)) {
+        throw(`Verification code cannot be empty.`);
+      }
+
+      const accessToken = await AccessToken.findOne({
+        email,
+        verificationCode,
+        seed,
+        activatedAt: undefined,
+        deletedAt: undefined
+      });
+
+      // console.log('accessToken', accessToken);
+      
+
+
+      // const applications = await Application.find({"studentRecords.email": email});
+
+      // // console.log('applications', applications.length);
+
+      if (!accessToken) {
+        throw(`Invalid verification code ${verificationCode}.`);
+      }
+
+      // mark access token as activated
+      await AccessToken.updateOne({
+        _id: accessToken._id,
+        email,
+        verificationCode,
+        seed
+      }, {activatedAt: current});
+
+      // console.log('x', x);
+
+      
+
+      // const studentRecord = _.find(applications[0].studentRecords, {email});
+
+      // console.log('studentRecord:', studentRecord);
+
+      
+
+      // const token = randomstring.generate({
+      //     length: 64,
+      //     readable: true,
+      //     charset: 'abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@_-~.?*&^%#()'
+      //   });
+
+      // const verificationCode = `${randomstring.generate({
+      //     length: 3,
+      //     charset: 'alphabetic',
+      //     capitalization: 'uppercase',
+      //     readable: true
+      //   })}-${randomstring.generate({
+      //     length: 3,
+      //     charset: 'alphanumeric',
+      //     capitalization: 'uppercase',
+      //     readable: true
+      //   })}-${randomstring.generate({
+      //     length: 3,
+      //     charset: 'alphanumeric',
+      //     capitalization: 'uppercase',
+      //     readable: true
+      //   })}`;
+
+      // const accessToken = await AccessToken.create({
+      //   createdAt: current,
+      //   seed,
+      //   email,
+      //   token,
+      //   verificationCode
+      // });
+
+      // const link = `${process.env.APP_URL}/registration/verify/${accessToken.verificationCode}/${accessToken.email.replace('@', '%40')}`;
+
+
+
+
+
+      // sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      
+      // const sgResult = await sgMail.send(msg);
+      
+      // return accessToken.email;
+
+      return accessToken;
 
     }
 
