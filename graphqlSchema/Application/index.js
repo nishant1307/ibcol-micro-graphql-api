@@ -173,6 +173,8 @@ const typeDefs = `
     phoneNumber: String
     email: String!
     educationRecords: [EducationRecord!]!
+    emailVerified: Boolean
+    phoneNumberVerified: Boolean
   }
 
   type EducationRecord {
