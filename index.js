@@ -103,6 +103,7 @@ const _Date = require('./graphqlSchema/Date');
 // const ObjectModel = require('./graphqlSchema/ObjectModel');
 // const CustomObject = require('./graphqlSchema/CustomObject');
 const Application = require('./graphqlSchema/Application');
+const _JSON = require('./graphqlSchema/JSON');
 
 
 const Query = `
@@ -149,6 +150,7 @@ const schema = makeExecutableSchema({
   typeDefs: [
     accountsGraphQL.typeDefs,
     _Date.typeDefs,
+    _JSON.typeDefs,
     // Translatable.typeDefs,
     // SchemaDefinition.typeDefs,
     // Field.typeDefs,
@@ -166,6 +168,7 @@ const schema = makeExecutableSchema({
   resolvers: merge(
     accountsGraphQL.resolvers,
     _Date.resolvers,
+    _JSON.resolvers,
     // Field.resolvers,
     // Page.resolvers,
     // Component.resolvers,
