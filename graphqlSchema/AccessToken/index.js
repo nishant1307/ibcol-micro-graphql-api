@@ -2,7 +2,7 @@ const _ = require('lodash-checkit');
 const AccessToken = require('./dbSchema.js');
 const Application = require('../Application/dbSchema.js');
 const randomstring = require("randomstring");
-const axios = require('axios');
+// const axios = require('axios');
 
 // const getApplicationByRef = (ref) => {
 //   return Application.findOne({ ref });
@@ -78,7 +78,7 @@ const typeDefs = `
   }
 
   extend type Mutation {
-    requestAccessToken(email: String!, seed: String!): String
+    requestAccessToken(locale: String!, email: String!, seed: String!): String
     verifyAccessToken(email: String!, seed: String!, verificationCode: String!): AccessToken
 
     # updateApplication(id: ID!, slug: String!, locale: String!, localisedPageInput: LocalisedPageInput, schemaDefinitionInputs: [SchemaDefinitionInput], localisedFieldInputs: [LocalisedFieldInput], unlocalisedFieldInputs: [UnlocalisedFieldInput]): Application
@@ -306,7 +306,7 @@ const resolvers = {
         verificationCode
       });
 
-      const link = `${process.env.APP_URL}/registration/verify/${accessToken.verificationCode}/${accessToken.email.replace('@', '%40')}`;
+      const link = `${process.env.APP_URL}/${args.locale.trim()}/registration/verify/${accessToken.verificationCode}/${accessToken.email.replace('@', '%40')}/`;
 
 
       const msg = {
