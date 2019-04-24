@@ -2,6 +2,7 @@ const _ = require('lodash-checkit');
 const AccessToken = require('./dbSchema.js');
 const Application = require('../Application/dbSchema.js');
 const randomstring = require("randomstring");
+const {isTokenValid} = require('../../helpers/auth.js');
 // const axios = require('axios');
 
 // const getApplicationByRef = (ref) => {
@@ -72,7 +73,7 @@ const randomstring = require("randomstring");
 
 const typeDefs = `
   extend type Query {
-    hello: String
+    isTokenValid(email: String!, token: String!): Boolean
     # getApplicationById(id: ID!): Application
     # getApplications(orderBy: ApplicationOrderBy): [Application]
   }
@@ -113,6 +114,10 @@ const typeDefs = `
 
 const resolvers = {
   Query: {
+    isTokenValid: async (root, args, context, info) => {
+      console.log('isTokenValid', args);
+      return await isTokenValid(args.email.trim(), args.token.trim());
+    },
     // getPages: (root, args, context, info) => {
 
     //   const orderBy = _.isEmpty(args.orderBy) ? 'updatedAt_DESC' : args.orderBy;
@@ -310,7 +315,7 @@ const resolvers = {
 
 
       const msg = {
-        from: "no-reply@ibcol.org",
+        from: `International Blockchain Olympiad <no-reply@ibcol.org>`,
         to: `${studentRecord.firstName} ${studentRecord.lastName} <${email}>`,
         subject: `IBCOL - Team Registration Login Verification (seed: "${seed}")`,
         text: `

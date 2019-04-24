@@ -1,9 +1,10 @@
 const _ = require('lodash');
 const Application = require('./dbSchema.js');
 const randomstring = require("randomstring");
+const {isTokenValid} = require('../../helpers/auth.js');
 const axios = require('axios');
 
-const getApplicationByRef = (ref) => {
+const getOneApplicationByRef = (ref) => {
   return Application.findOne({ ref });
 }
 
@@ -53,7 +54,7 @@ const generateUniqueReference = async () => {
 
   
 
-  const existingApplication = await getApplicationByRef(ref);
+  const existingApplication = await getOneApplicationByRef(ref);
   console.log('existingApplication', existingApplication);
 
   console.log('ref', ref);
@@ -70,15 +71,15 @@ const generateUniqueReference = async () => {
 
 
 const typeDefs = `
-  #extend type Query {
+  extend type Query {
     # getApplicationById(id: ID!): Application
-    # getApplications(orderBy: ApplicationOrderBy): [Application]
-  #}
+    getApplications(email: String!, token: String!): [Application]!
+  }
 
   extend type Mutation {
     addApplication(application: ApplicationInput!): Application
 
-    # updateApplication(id: ID!, slug: String!, locale: String!, localisedPageInput: LocalisedPageInput, schemaDefinitionInputs: [SchemaDefinitionInput], localisedFieldInputs: [LocalisedFieldInput], unlocalisedFieldInputs: [UnlocalisedFieldInput]): Application
+    updateApplication(application: ApplicationUpdateInput!): Application
 
     deleteApplicationById(id: ID!): Application
     
@@ -86,15 +87,17 @@ const typeDefs = `
 
 
 
-  enum ApplicationOrderBy {
-    createdAt_ASC
-    createdAt_DESC
-    updatedAt_ASC
-    updatedAt_DESC
-  }
-
+  
 
   input ApplicationInput {
+    teamName: String!
+    studentRecords: [StudentRecordInput!]!
+    advisorRecords: [AdvisorRecordInput]
+    projectRecords: [ProjectRecordInput!]!
+  }
+
+  input ApplicationUpdateInput {
+    ref: String!
     teamName: String!
     studentRecords: [StudentRecordInput!]!
     advisorRecords: [AdvisorRecordInput]
@@ -189,6 +192,7 @@ const typeDefs = `
     studentCardFrontFileId: String
     studentCardBackFileId: String
     transcriptFileId: String
+    isVerified: Boolean
   }
 
   type AdvisorRecord {
@@ -214,8 +218,8 @@ const typeDefs = `
     name: String!
     projectCategoryKey: String!
     description: String!
-    whitepaperFileIds: [String]!
-    presentationFileIds: [String]!
+    whitepaperFileIds: [String]
+    presentationFileIds: [String]
   }
 
   type ApplicationMeta {
@@ -238,113 +242,20 @@ const typeDefs = `
 
 const resolvers = {
   Query: {
-    // getPages: (root, args, context, info) => {
 
-    //   const orderBy = _.isEmpty(args.orderBy) ? 'updatedAt_DESC' : args.orderBy;
-    //   // console.log(">>>>>>", args, orderBy);
-    //   let sort = {};
-
-    //   // slug_ASC
-    //   // slug_DESC
-    //   // title_ASC
-    //   // title_DESC
-    //   // createdAt_ASC
-    //   // createdAt_DESC
-    //   // updatedAt_ASC
-    //   // updatedAt_DESC
-
-
-    //   switch (orderBy) {
-    //     case 'slug_ASC':
-    //       sort = {
-    //         slug: 1
-    //       };
-    //       break;
-    //     case 'slug_DESC':
-    //       sort = {
-    //         slug: -1
-    //       };
-    //       break;
-    //     case 'createdAt_ASC':
-    //       sort = {
-    //         'meta.createdAt': 1
-    //       };
-    //       break;
-    //     case 'createdAt_DESC':
-    //       sort = {
-    //         'meta.createdAt': -1
-    //       };
-    //       break;
-    //     case 'updatedAt_ASC':
-    //       sort = {
-    //         'meta.updatedAt': 1
-    //       };
-    //       break;
-    //     case 'updatedAt_DESC':
-    //       sort = {
-    //         'meta.updatedAt': -1
-    //       };
-    //       break;
-    //   }
-
-    //   return Page.find({ 'meta.deletedAt': { $exists: false } }, null, {
-    //     sort
-    //   }).then(
-    //     (records) => {
-    //       if (args.locale !== undefined) {
-
-
-    //         let translatedRecords = records.map((record) => {
-    //           return translateRecord(record.toObject(), args.locale)
-    //         })
-
-    //         if (orderBy === 'title_ASC' || orderBy === 'title_DESC') {
-    //           translatedRecords = _.orderBy(translatedRecords, ['localisedContent.title'], [orderBy === 'title_ASC' ? 'asc' : 'desc']);
-
-    //           // console.log('orderBy!!!', orderBy);
-    //         }
-
-    //         return translatedRecords;
-    //       } else {
-    //         return records;
-    //       }
-    //     }
-    //   );
+    getApplications: async (root, args, context, info) => {
+      console.log('getApplications', args);
       
-    // },
+      const email = args.email.toLowerCase().trim();
+      const token = args.token.trim();
+
+      if (!await isTokenValid(email, token)) {
+        throw('Invalid token.');
+      }
+
+      return await Application.find({"studentRecords.email": email});
+    },
     
-    
-
-    // getPageBySlug: (root, args, context, info) => {
-
-    //   return Page.findOne({ slug: args.slug, 'meta.deletedAt': { $exists: false } }).then(
-    //     (record) => {
-    //       if (args.locale !== undefined) {
-
-
-    //         return translateRecord(record.toObject(), args.locale);
-    //       } else {
-    //         return record;
-    //       }
-    //     }
-    //   );
-    // },
-
-    // getPageById: (root, args, context, info) => {
-
-    //   return Page.findOne({ _id: args.id, 'meta.deletedAt': { $exists: false } }).then(
-    //     (record) => {
-    //       if (args.locale !== undefined) {
-
-
-    //         return translateRecord(record.toObject(), args.locale);
-    //       } else {
-    //         return record;
-    //       }
-    //     }
-    //   );
-    // }
-
     
   },
 
@@ -372,6 +283,107 @@ const resolvers = {
       
       const application = args.application;
       
+
+      return Application.findOne({ teamName: new RegExp(`^${application.teamName}$`, 'i'), 'meta.deletedAt': { $exists: false } }).then((record) => {
+        // console.log('page', page);
+
+        if (!_.isEmpty(record)) {
+          throw(`Application with team name ${application.teamName} already exists.`);
+        }
+      }).then( async () => {
+
+        // const studentRecords = [];
+        // const advisorRecords = [];
+        // const projectRecords = [];
+
+        const ref = await generateUniqueReference();
+
+        // console.log("ref2", ref);
+
+        
+        
+
+        return Application.create({
+          meta: {
+            createdAt: current,
+            updatedAt: current
+          },
+          verificationKeys: [
+            {
+              "publicKey": ref+randomstring.generate({
+                length: 12,
+                charset: 'alphanumeric'
+              }),
+              "password": randomstring.generate({
+                length: 10,
+                readable: true,
+                charset: 'abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@_-~.?*&^%#()'
+              })
+            }
+          ],
+          ref,
+          teamName: application.teamName,
+          studentRecords: application.studentRecords,
+          advisorRecords: application.advisorRecords,
+          projectRecords: application.projectRecords.map(r=>injectNewProjectFilesToProject(r))
+        })
+      })
+      .then(async (record) => {
+        // process files attached in record
+
+        // flatten and store
+        const tmpFiles = [];
+
+        record.studentRecords.map((studentRecord)=>{
+          studentRecord.educationRecords.map((educationRecord)=>{
+          if (!_.isEmpty(educationRecord.studentCardFrontFileId))
+            tmpFiles.push(educationRecord.studentCardFrontFileId);
+          if (!_.isEmpty(educationRecord.studentCardBackFileId))
+            tmpFiles.push(educationRecord.studentCardBackFileId);
+          if (!_.isEmpty(educationRecord.transcriptFileId))
+            tmpFiles.push(educationRecord.transcriptFileId);
+          })
+        });
+
+        record.projectRecords.map((projectRecord)=>{
+
+          projectRecord.whitepaperFileIds.map((fileId)=>{tmpFiles.push(fileId)});
+          projectRecord.presentationFileIds.map((fileId)=>{tmpFiles.push(fileId)});
+          
+        });
+
+
+        console.log(`${tmpFiles.length} files needed to be saved:`, tmpFiles);
+        
+        for (const file of tmpFiles) {
+          const result = await storeFile(file);
+          // console.log(result);
+        }
+
+        console.log('saved record', record);
+
+        return record;
+        
+
+        
+
+      })
+
+    },
+    updateApplication: async (root, args, context, info) => {
+      console.log('updateApplication', args);
+      let current = Date.now();
+
+      
+      const application = args.application;
+
+      const existingTeamApplication = await Application.findOne({ teamName: new RegExp(`^${application.teamName}$`, 'i'), ref: {$ne: application.ref},  'meta.deletedAt': { $exists: false } });
+
+      if (existingTeamApplication) {
+        throw(`Team name ${application.teamName} is already used by another team.`);
+      }
+
+      return;
 
       return Application.findOne({ teamName: new RegExp(`^${application.teamName}$`, 'i'), 'meta.deletedAt': { $exists: false } }).then((record) => {
         // console.log('page', page);
