@@ -12,7 +12,16 @@ const storeFile = async (fileId) => {
   console.log(`requesting to storeFile ${fileId}...`);
 
   const result = await axios.put(`${process.env.FILEPOND_API_URL}${process.env.FILEPOND_API_ENDPOINT}`, fileId);
-  console.log(result);
+  // console.log(result);
+  return result;
+
+}
+
+const removeFile = async (fileId) => {
+  console.log(`requesting to removeFile ${fileId}...`);
+
+  const result = await axios.delete(`${process.env.FILEPOND_API_URL}${process.env.FILEPOND_API_ENDPOINT}`, {data: fileId});
+  // console.log(result);
   return result;
 
 }
@@ -383,92 +392,106 @@ const resolvers = {
         throw(`Team name ${application.teamName} is already used by another team.`);
       }
 
-      return;
+      const currentApplication = await Application.findOne({ref: application.ref, 'meta.deletedAt': { $exists: false }});
 
-      return Application.findOne({ teamName: new RegExp(`^${application.teamName}$`, 'i'), 'meta.deletedAt': { $exists: false } }).then((record) => {
-        // console.log('page', page);
+      
+      
+      // console.log('currentApplication', currentApplication);
+      
 
-        if (!_.isEmpty(record)) {
-          throw(`Application with team name ${application.teamName} already exists.`);
-        }
-      }).then( async () => {
 
-        // const studentRecords = [];
-        // const advisorRecords = [];
-        // const projectRecords = [];
+      // original files
+      const originalFiles = [];
 
-        const ref = await generateUniqueReference();
+      currentApplication.studentRecords.map((studentRecord)=>{
+        studentRecord.educationRecords.map((educationRecord)=>{
+        if (!_.isEmpty(educationRecord.studentCardFrontFileId))
+          originalFiles.push(educationRecord.studentCardFrontFileId);
+        if (!_.isEmpty(educationRecord.studentCardBackFileId))
+          originalFiles.push(educationRecord.studentCardBackFileId);
+        if (!_.isEmpty(educationRecord.transcriptFileId))
+          originalFiles.push(educationRecord.transcriptFileId);
+        })
+      });
 
-        // console.log("ref2", ref);
+      currentApplication.projectRecords.map((projectRecord)=>{
+        if (projectRecord.whitepaperFileIds === undefined)
+          projectRecord.whitepaperFileIds = [];
+        if (projectRecord.presentationFileIds === undefined)
+          projectRecord.presentationFileIds = [];
 
+        projectRecord.whitepaperFileIds.map((fileId)=>{originalFiles.push(fileId)});
+        projectRecord.presentationFileIds.map((fileId)=>{originalFiles.push(fileId)});
         
-        
+      });
+      console.log('originalFiles', originalFiles);
 
-        return Application.create({
-          meta: {
-            createdAt: current,
-            updatedAt: current
-          },
-          verificationKeys: [
-            {
-              "publicKey": ref+randomstring.generate({
-                length: 12,
-                charset: 'alphanumeric'
-              }),
-              "password": randomstring.generate({
-                length: 10,
-                readable: true,
-                charset: 'abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@_-~.?*&^%#()'
-              })
-            }
-          ],
-          ref,
+
+      const updatedApplication = await Application.findOneAndUpdate({ref: application.ref, 'meta.deletedAt': { $exists: false }},
+      {
+        $set: {
+          'meta.updatedAt': current,
           teamName: application.teamName,
           studentRecords: application.studentRecords,
           advisorRecords: application.advisorRecords,
           projectRecords: application.projectRecords.map(r=>injectNewProjectFilesToProject(r))
-        })
-      })
-      .then(async (record) => {
-        // process files attached in record
-
-        // flatten and store
-        const tmpFiles = [];
-
-        record.studentRecords.map((studentRecord)=>{
-          studentRecord.educationRecords.map((educationRecord)=>{
-          if (!_.isEmpty(educationRecord.studentCardFrontFileId))
-            tmpFiles.push(educationRecord.studentCardFrontFileId);
-          if (!_.isEmpty(educationRecord.studentCardBackFileId))
-            tmpFiles.push(educationRecord.studentCardBackFileId);
-          if (!_.isEmpty(educationRecord.transcriptFileId))
-            tmpFiles.push(educationRecord.transcriptFileId);
-          })
-        });
-
-        record.projectRecords.map((projectRecord)=>{
-
-          projectRecord.whitepaperFileIds.map((fileId)=>{tmpFiles.push(fileId)});
-          projectRecord.presentationFileIds.map((fileId)=>{tmpFiles.push(fileId)});
-          
-        });
-
-
-        console.log(`${tmpFiles.length} files needed to be saved:`, tmpFiles);
-        
-        for (const file of tmpFiles) {
-          const result = await storeFile(file);
-          // console.log(result);
         }
+      }, {new: true});
 
-        console.log('saved record', record);
 
-        return record;
+      // flatten and store
+      const tmpFiles = [];
+
+      updatedApplication.studentRecords.map((studentRecord)=>{
+        studentRecord.educationRecords.map((educationRecord)=>{
+        if (!_.isEmpty(educationRecord.studentCardFrontFileId))
+          tmpFiles.push(educationRecord.studentCardFrontFileId);
+        if (!_.isEmpty(educationRecord.studentCardBackFileId))
+          tmpFiles.push(educationRecord.studentCardBackFileId);
+        if (!_.isEmpty(educationRecord.transcriptFileId))
+          tmpFiles.push(educationRecord.transcriptFileId);
+        })
+      });
+
+      updatedApplication.projectRecords.map((projectRecord)=>{
+
+        projectRecord.whitepaperFileIds.map((fileId)=>{tmpFiles.push(fileId)});
+        projectRecord.presentationFileIds.map((fileId)=>{tmpFiles.push(fileId)});
         
+      });
 
-        
+      
+      console.log('tmpFiles', tmpFiles);
 
-      })
+
+      const newFiles = _.difference(tmpFiles, originalFiles);
+      const expiredFiles = _.difference(originalFiles, tmpFiles);
+
+
+      console.log(`${newFiles.length} files needed to be saved:`, newFiles);
+      
+      // store newFiles
+      for (const file of newFiles) {
+        const result = await storeFile(file);
+        // console.log(result);
+      }
+
+      console.log(`${expiredFiles.length} files needed to be removed:`, expiredFiles);
+
+      // remove expiredFiles
+      for (const file of expiredFiles) {
+        const result = await removeFile(file);
+        // console.log(result);
+      }
+
+
+
+
+
+      return updatedApplication;
+
+      
+
 
     },
 
