@@ -378,86 +378,26 @@ const resolvers = {
         throw(`Verification code cannot be empty.`);
       }
 
-      const accessToken = await AccessToken.findOne({
+      
+
+      
+      const accessToken = await AccessToken.findOneAndUpdate({
         email,
         verificationCode,
         seed,
         activatedAt: undefined,
         deletedAt: undefined
-      });
-
-      // console.log('accessToken', accessToken);
-      
-
-
-      // const applications = await Application.find({"studentRecords.email": email});
-
-      // // console.log('applications', applications.length);
+      }, {
+        $set: {
+          activatedAt: current
+        }
+      }, {new: true});
 
       if (!accessToken) {
         throw(`Invalid verification code ${verificationCode}.`);
       }
 
-      // mark access token as activated
-      await AccessToken.updateOne({
-        _id: accessToken._id,
-        email,
-        verificationCode,
-        seed
-      }, {activatedAt: current});
-
-      // console.log('x', x);
-
       
-
-      // const studentRecord = _.find(applications[0].studentRecords, {email});
-
-      // console.log('studentRecord:', studentRecord);
-
-      
-
-      // const token = randomstring.generate({
-      //     length: 64,
-      //     readable: true,
-      //     charset: 'abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@_-~.?*&^%#()'
-      //   });
-
-      // const verificationCode = `${randomstring.generate({
-      //     length: 3,
-      //     charset: 'alphabetic',
-      //     capitalization: 'uppercase',
-      //     readable: true
-      //   })}-${randomstring.generate({
-      //     length: 3,
-      //     charset: 'alphanumeric',
-      //     capitalization: 'uppercase',
-      //     readable: true
-      //   })}-${randomstring.generate({
-      //     length: 3,
-      //     charset: 'alphanumeric',
-      //     capitalization: 'uppercase',
-      //     readable: true
-      //   })}`;
-
-      // const accessToken = await AccessToken.create({
-      //   createdAt: current,
-      //   seed,
-      //   email,
-      //   token,
-      //   verificationCode
-      // });
-
-      // const link = `${process.env.APP_URL}/registration/verify/${accessToken.verificationCode}/${accessToken.email.replace('@', '%40')}`;
-
-
-
-
-
-      // sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-      
-      // const sgResult = await sgMail.send(msg);
-      
-      // return accessToken.email;
 
       return accessToken;
 

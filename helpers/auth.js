@@ -18,7 +18,7 @@ const isTokenValid = async (email = "", token = "") => {
     $set: {
       lastAccessedAt: current
     }
-  });
+  }, {new: true});
 
   // console.log('accessToken', accessToken, _.isEmpty(accessToken));
     
