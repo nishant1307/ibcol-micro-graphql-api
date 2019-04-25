@@ -3,9 +3,55 @@ const Application = require('./dbSchema.js');
 const randomstring = require("randomstring");
 const {isTokenValid} = require('../../helpers/auth.js');
 const axios = require('axios');
-const update = require('immutability-helper');
+
+const generateUniqueReference = async () => {
+  const ref = `${randomstring.generate({
+    length: 3,
+    charset: 'alphabetic',
+    capitalization: 'uppercase',
+    readable: true
+  })}-${randomstring.generate({
+    length: 10,
+    charset: 'alphanumeric',
+    capitalization: 'uppercase',
+    readable: true
+  })}${timestamp ? Date.now(): ''}`;
 
 
+  
+
+  const existingApplication = await getOneApplicationByRef(ref);
+  console.log('existingApplication', existingApplication);
+
+  console.log('ref', ref);
+
+
+  if (existingApplication !== null) {
+    return await generateUniqueReference();
+  } else {
+    return ref;
+  }
+
+  
+}
+
+const generateProjectReference = () => {
+  const ref = `${randomstring.generate({
+    length: 3,
+    charset: 'alphabetic',
+    capitalization: 'uppercase',
+    readable: true
+  })}-${randomstring.generate({
+    length: 10,
+    charset: 'alphanumeric',
+    capitalization: 'uppercase',
+    readable: true
+  })}${Date.now()}`;
+
+
+  return ref;
+  
+}
 
 const getOneApplicationByRef = (ref) => {
   return Application.findOne({ ref });
@@ -29,86 +75,63 @@ const removeFile = async (fileId) => {
 
 }
 
-const injectNewProjectFilesToProject = (projectRecord) => {
-  // console.log('injectNewProjectFilesToProject', projectRecord);
+const injectNewProjectFilesToProject = (projectRecord, existingProjects) => {
+  // console.log('injectNewProjectFilesToProject', projectRecord, existingProjects);
   
   let current = Date.now();
 
-  if (_.isEmpty(projectRecord.whitepaperFileIds))
-    projectRecord.whitepaperFileIds = [];
+  const updatedProjectRecord = (existingProjects && projectRecord.ref) ? _.find(existingProjects, {ref: projectRecord.ref}) : Object.assign({}, projectRecord);
 
-  if (_.isEmpty(projectRecord.presentationFileIds))
-    projectRecord.presentationFileIds = [];
+  // console.log('updatedProjectRecord', updatedProjectRecord);
+  // console.log('updatedProjectRecord.whitepaperFileIds', updatedProjectRecord.whitepaperFileIds);
+
+  if (_.isEmpty(updatedProjectRecord.whitepaperFileIds))
+    updatedProjectRecord.whitepaperFileIds = [];
+
+  if (_.isEmpty(updatedProjectRecord.presentationFileIds))
+    updatedProjectRecord.presentationFileIds = [];
 
   if (!_.isEmpty(projectRecord.whitepaperFileId))
-    projectRecord.whitepaperFileIds.push({fileId: projectRecord.whitepaperFileId, receivedAt: current});
+    updatedProjectRecord.whitepaperFileIds.push({fileId: projectRecord.whitepaperFileId, receivedAt: current});
 
   if (!_.isEmpty(projectRecord.presentationFileId))
-    projectRecord.presentationFileIds.push({fileId: projectRecord.presentationFileId, receivedAt: current});
+    updatedProjectRecord.presentationFileIds.push({fileId: projectRecord.presentationFileId, receivedAt: current});
 
-  delete projectRecord.whitepaperFileId;
-  delete projectRecord.presentationFileId;
+  delete updatedProjectRecord.whitepaperFileId;
+  delete updatedProjectRecord.presentationFileId;
   
-  return projectRecord;
+  return updatedProjectRecord;
 }
 
-const fixDropFiles = (application) => {
-  return update(application, {
-    projectRecords: {$apply: (projectRecords) => {
-      return projectRecords.map((projectRecord)=>{
+const patchProjectOutputs = (application) => {
+  return Object.assign({}, application, {
+    projectRecords: application.projectRecords.map((projectRecord)=>{
         return {
+          ref: projectRecord.ref,
           name: projectRecord.name,
           projectCategoryKey: projectRecord.projectCategoryKey,
           description: projectRecord.description,
           whitepaperFileIds: projectRecord.whitepaperFileIds ? projectRecord.whitepaperFileIds.map((fileId)=>{
             if (typeof(fileId) === 'string') {
-              return {fileId: fileId, receivedAt: undefined}
+              return {fileId, receivedAt: undefined}
             } else if (typeof(fileId) === 'object') {
               return fileId
             }
           }) : [],
           presentationFileIds: projectRecord.presentationFileIds ? projectRecord.presentationFileIds.map((fileId)=>{
             if (typeof(fileId) === 'string') {
-              return {fileId: fileId, receivedAt: undefined}
+              return {fileId, receivedAt: undefined}
             } else if (typeof(fileId) === 'object') {
               return fileId
             }
           }) : []
         }
       })
-    }}
-  })
+  });
 }
 
-const generateUniqueReference = async () => {
-  const ref = `${randomstring.generate({
-    length: 3,
-    charset: 'alphabetic',
-    capitalization: 'uppercase',
-    readable: true
-  })}-${randomstring.generate({
-    length: 10,
-    charset: 'alphanumeric',
-    capitalization: 'uppercase',
-    readable: true
-  })}`;
-
-  
-
-  const existingApplication = await getOneApplicationByRef(ref);
-  console.log('existingApplication', existingApplication);
-
-  console.log('ref', ref);
 
 
-  if (existingApplication !== null) {
-    return generateUniqueReference();
-  } else {
-    return ref;
-  }
-
-  
-}
 
 
 const typeDefs = `
@@ -121,6 +144,8 @@ const typeDefs = `
     addApplication(application: ApplicationInput!): Application
 
     updateApplication(email: String!, token: String!, application: ApplicationUpdateInput!): Application
+
+    #patchApplications: [Application]
 
     deleteApplicationById(id: ID!): Application
     
@@ -190,6 +215,7 @@ const typeDefs = `
 
 
   input ProjectRecordInput {
+    ref: String
     name: String!
     projectCategoryKey: String!
     description: String!
@@ -256,6 +282,7 @@ const typeDefs = `
   }
 
   type ProjectRecord {
+    ref: String!
     name: String!
     projectCategoryKey: String!
     description: String!
@@ -299,10 +326,10 @@ const resolvers = {
         throw('Invalid token.');
       }
 
-      const applications = await Application.find({"studentRecords.email": email});
+      const applications = await Application.find({"studentRecords.email": email}).lean();
       // console.log('applications', applications);
       // console.log('applications (patched)', applications.map((application)=>fixDropFiles(application)));
-      return applications.map((application)=>fixDropFiles(application));
+      return applications.map((application)=>patchProjectOutputs(application));
     },
     
     
@@ -374,7 +401,10 @@ const resolvers = {
           teamName: application.teamName,
           studentRecords: application.studentRecords,
           advisorRecords: application.advisorRecords,
-          projectRecords: application.projectRecords.map(r=>injectNewProjectFilesToProject(r))
+          projectRecords: application.projectRecords.map(projectRecord=>injectNewProjectFilesToProject(projectRecord)).map((projectRecord)=>{
+            // add project ref to new project in new applications
+            return Object.assign({}, projectRecord, {ref: generateProjectReference()})
+          })
         })
       })
       .then(async (record) => {
@@ -452,7 +482,7 @@ const resolvers = {
         throw(`Team name ${application.teamName} is already used by another team.`);
       }
 
-      const currentApplication = await Application.findOne({"studentRecords.email": email, ref: application.ref, 'meta.deletedAt': { $exists: false }});
+      const currentApplication = await Application.findOne({"studentRecords.email": email, ref: application.ref, 'meta.deletedAt': { $exists: false }}).lean();
 
       
       if (!currentApplication) {
@@ -478,19 +508,17 @@ const resolvers = {
       });
 
       currentApplication.projectRecords.map((projectRecord)=>{
-        if (projectRecord.whitepaperFileIds === undefined)
-          projectRecord.whitepaperFileIds = [];
-        if (projectRecord.presentationFileIds === undefined)
-          projectRecord.presentationFileIds = [];
+        
 
-        projectRecord.whitepaperFileIds.map((fileId)=>{
+        if (projectRecord.whitepaperFileIds) projectRecord.whitepaperFileIds.map((fileId)=>{
           if (typeof(fileId) === 'string') {
             originalFiles.push(fileId);
           } else if (typeof(fileId) === 'object') {
             originalFiles.push(fileId.fileId);
           }
         });
-        projectRecord.presentationFileIds.map((fileId)=>{
+
+        if (projectRecord.presentationFileIds)  projectRecord.presentationFileIds.map((fileId)=>{
           if (typeof(fileId) === 'string') {
             originalFiles.push(fileId);
           } else if (typeof(fileId) === 'object') {
@@ -509,7 +537,10 @@ const resolvers = {
           teamName: application.teamName,
           studentRecords: application.studentRecords,
           advisorRecords: application.advisorRecords,
-          projectRecords: application.projectRecords.map(r=>injectNewProjectFilesToProject(r))
+          projectRecords: application.projectRecords.map(projectRecord=>injectNewProjectFilesToProject(projectRecord, currentApplication.projectRecords)).map((projectRecord)=>{
+            // add project ref to new project in existing application (new project will not have a ref)
+            return (!_.isEmpty(projectRecord.ref)) ? projectRecord : Object.assign({}, projectRecord, {ref: generateProjectReference()})
+          })
         }
       }, {new: true});
 
@@ -581,6 +612,60 @@ const resolvers = {
 
 
     },
+
+    // patchApplications: async (root, args, context, info) => {
+    //   console.log('patchApplications', args);
+    //   let current = Date.now();
+
+
+    //   // const email = args.email.toLowerCase().trim();
+    //   // const token = args.token.trim();
+
+    //   // if (!await isTokenValid(email, token)) {
+    //   //   throw('Invalid token.');
+    //   // }
+      
+    //   // const application = args.application;
+
+      
+
+    //   const applications = await Application.find().lean();
+      
+
+    //   for (const application of applications) {
+    //     console.log(`processing application ref #${application.ref}...`)
+    //     let needPatch = false;
+
+    //     const projectRecords = application.projectRecords.map( (projectRecord) => {
+    //       if (projectRecord.ref === undefined)
+    //         needPatch = true;
+
+    //       return projectRecord.ref ? projectRecord : Object.assign({}, projectRecord, {ref: generateProjectReference()})
+    //     })
+
+    //     if (needPatch) {
+    //       console.log(`patching application ref #${application.ref}...`)
+    //       await Application.updateOne({ref: application.ref}, {
+    //         projectRecords
+    //       })
+    //       console.log(`patched ref #${application.ref}.`)
+    //     }
+
+
+    //   }
+      
+
+      
+
+
+
+
+    //   return await Application.find();
+
+      
+
+
+    // },
 
 
 

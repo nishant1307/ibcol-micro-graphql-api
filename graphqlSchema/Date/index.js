@@ -15,7 +15,7 @@ const resolvers = {
       return new Date(value); // value from the client
     },
     serialize(value) {
-      return value.getTime(); // value sent to the client
+      return (typeof(value) === 'object') ? value.getTime() : value; // value sent to the client
     },
     parseLiteral(ast) {
       if (ast.kind === Kind.INT) {
