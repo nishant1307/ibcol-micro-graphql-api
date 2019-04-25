@@ -49,9 +49,11 @@
     "apollo-server": "^2.4.8",
     "axios": "^0.18.0",
     "chalk": "^2.4.1",
+    "crypto-js": "^3.1.9-1",
     "graphql": "^14.0.2",
     "graphql-tools": "^4.0.0",
     "graphql-type-json": "^0.3.0",
+    "immutability-helper": "^3.0.0",
     "lodash": "^4.17.11",
     "lodash-checkit": "^2.3.0",
     "mailchimp-api-v3": "^1.12.0",
@@ -61,7 +63,8 @@
     "mongoose": "^5.2.17",
     "now-micro": "^0.3.0",
     "pluralize": "^7.0.0",
-    "randomstring": "^1.1.5"
+    "randomstring": "^1.1.5",
+    "update-immutable": "^1.5.0"
   },
   "devDependencies": {
     "micro-dev": "^3.0.0",

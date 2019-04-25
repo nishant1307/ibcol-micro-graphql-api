@@ -3,6 +3,9 @@ const Application = require('./dbSchema.js');
 const randomstring = require("randomstring");
 const {isTokenValid} = require('../../helpers/auth.js');
 const axios = require('axios');
+const update = require('immutability-helper');
+
+
 
 const getOneApplicationByRef = (ref) => {
   return Application.findOne({ ref });
@@ -28,7 +31,8 @@ const removeFile = async (fileId) => {
 
 const injectNewProjectFilesToProject = (projectRecord) => {
   // console.log('injectNewProjectFilesToProject', projectRecord);
-
+  
+  let current = Date.now();
 
   if (_.isEmpty(projectRecord.whitepaperFileIds))
     projectRecord.whitepaperFileIds = [];
@@ -37,15 +41,43 @@ const injectNewProjectFilesToProject = (projectRecord) => {
     projectRecord.presentationFileIds = [];
 
   if (!_.isEmpty(projectRecord.whitepaperFileId))
-    projectRecord.whitepaperFileIds.push(projectRecord.whitepaperFileId);
+    projectRecord.whitepaperFileIds.push({fileId: projectRecord.whitepaperFileId, receivedAt: current});
 
   if (!_.isEmpty(projectRecord.presentationFileId))
-    projectRecord.presentationFileIds.push(projectRecord.presentationFileId);
+    projectRecord.presentationFileIds.push({fileId: projectRecord.presentationFileId, receivedAt: current});
 
   delete projectRecord.whitepaperFileId;
   delete projectRecord.presentationFileId;
   
   return projectRecord;
+}
+
+const fixDropFiles = (application) => {
+  return update(application, {
+    projectRecords: {$apply: (projectRecords) => {
+      return projectRecords.map((projectRecord)=>{
+        return {
+          name: projectRecord.name,
+          projectCategoryKey: projectRecord.projectCategoryKey,
+          description: projectRecord.description,
+          whitepaperFileIds: projectRecord.whitepaperFileIds ? projectRecord.whitepaperFileIds.map((fileId)=>{
+            if (typeof(fileId) === 'string') {
+              return {fileId: fileId, receivedAt: undefined}
+            } else if (typeof(fileId) === 'object') {
+              return fileId
+            }
+          }) : [],
+          presentationFileIds: projectRecord.presentationFileIds ? projectRecord.presentationFileIds.map((fileId)=>{
+            if (typeof(fileId) === 'string') {
+              return {fileId: fileId, receivedAt: undefined}
+            } else if (typeof(fileId) === 'object') {
+              return fileId
+            }
+          }) : []
+        }
+      })
+    }}
+  })
 }
 
 const generateUniqueReference = async () => {
@@ -88,7 +120,7 @@ const typeDefs = `
   extend type Mutation {
     addApplication(application: ApplicationInput!): Application
 
-    updateApplication(application: ApplicationUpdateInput!): Application
+    updateApplication(email: String!, token: String!, application: ApplicationUpdateInput!): Application
 
     deleteApplicationById(id: ID!): Application
     
@@ -227,8 +259,13 @@ const typeDefs = `
     name: String!
     projectCategoryKey: String!
     description: String!
-    whitepaperFileIds: [String]
-    presentationFileIds: [String]
+    whitepaperFileIds: [DropFile]
+    presentationFileIds: [DropFile]
+  }
+
+  type DropFile {
+    receivedAt: Date
+    fileId: String!
   }
 
   type ApplicationMeta {
@@ -262,7 +299,10 @@ const resolvers = {
         throw('Invalid token.');
       }
 
-      return await Application.find({"studentRecords.email": email});
+      const applications = await Application.find({"studentRecords.email": email});
+      // console.log('applications', applications);
+      // console.log('applications (patched)', applications.map((application)=>fixDropFiles(application)));
+      return applications.map((application)=>fixDropFiles(application));
     },
     
     
@@ -356,8 +396,21 @@ const resolvers = {
 
         record.projectRecords.map((projectRecord)=>{
 
-          projectRecord.whitepaperFileIds.map((fileId)=>{tmpFiles.push(fileId)});
-          projectRecord.presentationFileIds.map((fileId)=>{tmpFiles.push(fileId)});
+          projectRecord.whitepaperFileIds.map((fileId)=>{
+            if (typeof(fileId) === 'string') {
+              tmpFiles.push(fileId);
+            } else if (typeof(fileId) === 'object') {
+              tmpFiles.push(fileId.fileId);
+            }
+            
+          });
+          projectRecord.presentationFileIds.map((fileId)=>{
+            if (typeof(fileId) === 'string') {
+              tmpFiles.push(fileId);
+            } else if (typeof(fileId) === 'object') {
+              tmpFiles.push(fileId.fileId);
+            }
+          });
           
         });
 
@@ -383,6 +436,13 @@ const resolvers = {
       console.log('updateApplication', args);
       let current = Date.now();
 
+
+      const email = args.email.toLowerCase().trim();
+      const token = args.token.trim();
+
+      if (!await isTokenValid(email, token)) {
+        throw('Invalid token.');
+      }
       
       const application = args.application;
 
@@ -392,10 +452,13 @@ const resolvers = {
         throw(`Team name ${application.teamName} is already used by another team.`);
       }
 
-      const currentApplication = await Application.findOne({ref: application.ref, 'meta.deletedAt': { $exists: false }});
+      const currentApplication = await Application.findOne({"studentRecords.email": email, ref: application.ref, 'meta.deletedAt': { $exists: false }});
 
       
-      
+      if (!currentApplication) {
+        throw(`Cannot find application ref #${application.ref}.`);
+      }
+
       // console.log('currentApplication', currentApplication);
       
 
@@ -420,8 +483,20 @@ const resolvers = {
         if (projectRecord.presentationFileIds === undefined)
           projectRecord.presentationFileIds = [];
 
-        projectRecord.whitepaperFileIds.map((fileId)=>{originalFiles.push(fileId)});
-        projectRecord.presentationFileIds.map((fileId)=>{originalFiles.push(fileId)});
+        projectRecord.whitepaperFileIds.map((fileId)=>{
+          if (typeof(fileId) === 'string') {
+            originalFiles.push(fileId);
+          } else if (typeof(fileId) === 'object') {
+            originalFiles.push(fileId.fileId);
+          }
+        });
+        projectRecord.presentationFileIds.map((fileId)=>{
+          if (typeof(fileId) === 'string') {
+            originalFiles.push(fileId);
+          } else if (typeof(fileId) === 'object') {
+            originalFiles.push(fileId.fileId);
+          }
+        });
         
       });
       console.log('originalFiles', originalFiles);
@@ -455,8 +530,20 @@ const resolvers = {
 
       updatedApplication.projectRecords.map((projectRecord)=>{
 
-        projectRecord.whitepaperFileIds.map((fileId)=>{tmpFiles.push(fileId)});
-        projectRecord.presentationFileIds.map((fileId)=>{tmpFiles.push(fileId)});
+        projectRecord.whitepaperFileIds.map((fileId)=>{
+          if (typeof(fileId) === 'string') {
+            tmpFiles.push(fileId);
+          } else if (typeof(fileId) === 'object') {
+            tmpFiles.push(fileId.fileId);
+          }
+        });
+        projectRecord.presentationFileIds.map((fileId)=>{
+          if (typeof(fileId) === 'string') {
+            tmpFiles.push(fileId);
+          } else if (typeof(fileId) === 'object') {
+            tmpFiles.push(fileId.fileId);
+          }
+        });
         
       });
 
