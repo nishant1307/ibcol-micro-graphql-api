@@ -1,12 +1,12 @@
 const _ = require('lodash');
 const AccessToken = require('../graphqlSchema/AccessToken/dbSchema.js');
 
-const isTokenValid = async (email = "", token = "") => {
+const isTokenValid = async ({email = "", token = ""}) => {
   let current = Date.now();
   // console.log('isTokenValid?', email, token);
 
   const accessToken = await AccessToken.findOneAndUpdate({
-    email, token,
+    email: email.toLowerCase(), token,
     deletedAt: {
       $exists: false
     },

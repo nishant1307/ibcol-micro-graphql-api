@@ -137,13 +137,13 @@ const patchProjectOutputs = (application) => {
 const typeDefs = `
   extend type Query {
     # getApplicationById(id: ID!): Application
-    getApplications(email: String!, token: String!): [Application]!
+    getApplications(accessToken: TokenInput!): [Application]!
   }
 
   extend type Mutation {
     addApplication(application: ApplicationInput!): Application
 
-    updateApplication(email: String!, token: String!, application: ApplicationUpdateInput!): Application
+    updateApplication(accessToken: TokenInput!, application: ApplicationUpdateInput!): Application
 
     #patchApplications: [Application]
 
@@ -319,12 +319,12 @@ const resolvers = {
     getApplications: async (root, args, context, info) => {
       console.log('getApplications', args);
       
-      const email = args.email.toLowerCase().trim();
-      const token = args.token.trim();
 
-      if (!await isTokenValid(email, token)) {
+      if (!await isTokenValid(args.accessToken)) {
         throw('Invalid token.');
       }
+
+      const email = args.accessToken.email;
 
       const applications = await Application.find({"studentRecords.email": email}).lean();
       // console.log('applications', applications);
@@ -467,14 +467,14 @@ const resolvers = {
       let current = Date.now();
 
 
-      const email = args.email.toLowerCase().trim();
-      const token = args.token.trim();
+      
 
-      if (!await isTokenValid(email, token)) {
+      if (!await isTokenValid(args.accessToken)) {
         throw('Invalid token.');
       }
       
       const application = args.application;
+      const email = args.accessToken.email;
 
       const existingTeamApplication = await Application.findOne({ teamName: new RegExp(`^${application.teamName}$`, 'i'), ref: {$ne: application.ref},  'meta.deletedAt': { $exists: false } });
 

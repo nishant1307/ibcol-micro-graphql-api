@@ -73,7 +73,7 @@ const {isTokenValid} = require('../../helpers/auth.js');
 
 const typeDefs = `
   extend type Query {
-    isTokenValid(email: String!, token: String!): Boolean
+    isTokenValid(accessToken: TokenInput!): Boolean
     # getApplicationById(id: ID!): Application
     # getApplications(orderBy: ApplicationOrderBy): [Application]
   }
@@ -88,7 +88,10 @@ const typeDefs = `
     
   }
 
-  
+  input TokenInput {
+    email: String!
+    token: String!
+  }
 
 
   type AccessToken {
@@ -116,7 +119,10 @@ const resolvers = {
   Query: {
     isTokenValid: async (root, args, context, info) => {
       console.log('isTokenValid', args);
-      return await isTokenValid(args.email.trim(), args.token.trim());
+
+      // const {email, token} = args.accessToken;
+
+      return await isTokenValid(args.accessToken);
     },
     // getPages: (root, args, context, info) => {
 
