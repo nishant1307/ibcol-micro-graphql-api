@@ -138,7 +138,7 @@ const typeDefs = `
   extend type Query {
     # getApplicationById(id: ID!): Application
     getMyApplications(accessToken: TokenInput!): [Application]!
-    #getApplications(accessToken: TokenInput!): [Application]!
+    getApplications(accessToken: TokenInput!): [Application]!
   }
 
   extend type Mutation {
@@ -317,8 +317,8 @@ const typeDefs = `
 const resolvers = {
   Query: {
 
-    getMyApplications: async (root, args, context, info) => {
-      console.log('getMyApplications', args);
+    getApplications: async (root, args, context, info) => {
+      console.log('getApplications', args);
       
 
       if (!await isTokenValid(args.accessToken)) {
