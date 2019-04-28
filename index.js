@@ -103,6 +103,7 @@ const _Date = require('./graphqlSchema/Date');
 // const ObjectModel = require('./graphqlSchema/ObjectModel');
 // const CustomObject = require('./graphqlSchema/CustomObject');
 const Application = require('./graphqlSchema/Application');
+const AdminEmail = require('./graphqlSchema/AdminEmail');
 const AccessToken = require('./graphqlSchema/AccessToken');
 const _JSON = require('./graphqlSchema/JSON');
 
@@ -160,6 +161,7 @@ const schema = makeExecutableSchema({
     // ObjectModel.typeDefs,
     // CustomObject.typeDefs,
     Application.typeDefs,
+    AdminEmail.typeDefs,
     AccessToken.typeDefs,
 
     Query,
@@ -178,6 +180,7 @@ const schema = makeExecutableSchema({
     // Translatable.resolvers,
     // CustomObject.resolvers,
     Application.resolvers,
+    AdminEmail.resolvers,
     AccessToken.resolvers,
     
 
