@@ -137,7 +137,8 @@ const patchProjectOutputs = (application) => {
 const typeDefs = `
   extend type Query {
     # getApplicationById(id: ID!): Application
-    getApplications(accessToken: TokenInput!): [Application]!
+    getMyApplications(accessToken: TokenInput!): [Application]!
+    #getApplications(accessToken: TokenInput!): [Application]!
   }
 
   extend type Mutation {
@@ -316,8 +317,8 @@ const typeDefs = `
 const resolvers = {
   Query: {
 
-    getApplications: async (root, args, context, info) => {
-      console.log('getApplications', args);
+    getMyApplications: async (root, args, context, info) => {
+      console.log('getMyApplications', args);
       
 
       if (!await isTokenValid(args.accessToken)) {
