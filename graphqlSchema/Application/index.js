@@ -137,7 +137,7 @@ const patchProjectOutputs = (application) => {
 const typeDefs = `
   extend type Query {
     # getApplicationById(id: ID!): Application
-    getMyApplications(accessToken: TokenInput!): [Application]!
+    getApplicationsAsAdmin(accessToken: TokenInput!): [Application]!
     getApplications(accessToken: TokenInput!): [Application]!
   }
 
@@ -327,7 +327,28 @@ const resolvers = {
 
       const email = args.accessToken.email;
 
-      const applications = await Application.find({"studentRecords.email": email}).lean();
+      const applications = await Application.find({"studentRecords.email": email,
+        deletedAt: {
+          $exists: false
+        }}).lean();
+      // console.log('applications', applications);
+      // console.log('applications (patched)', applications.map((application)=>fixDropFiles(application)));
+      return applications.map((application)=>patchProjectOutputs(application));
+    },
+
+    getApplicationsAsAdmin: async (root, args, context, info) => {
+      console.log('getApplicationsAsAdmin', args);
+      
+
+      if (!await isTokenValid(args.accessToken, true)) {
+        throw('Invalid admin token.');
+      }
+
+
+      const applications = await Application.find({
+        deletedAt: {
+          $exists: false
+        }}).lean();
       // console.log('applications', applications);
       // console.log('applications (patched)', applications.map((application)=>fixDropFiles(application)));
       return applications.map((application)=>patchProjectOutputs(application));
