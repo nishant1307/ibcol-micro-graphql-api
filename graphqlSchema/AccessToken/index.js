@@ -1,6 +1,7 @@
 const _ = require('lodash-checkit');
 const AccessToken = require('./dbSchema.js');
 const Application = require('../Application/dbSchema.js');
+const AdminEmail = require('../AdminEmail/dbSchema.js');
 const randomstring = require("randomstring");
 const {isTokenValid} = require('../../helpers/auth.js');
 // const axios = require('axios');
@@ -73,13 +74,14 @@ const {isTokenValid} = require('../../helpers/auth.js');
 
 const typeDefs = `
   extend type Query {
-    isTokenValid(accessToken: TokenInput!): Boolean
+    isTokenValid(accessToken: TokenInput!, requireAdminAccess: Boolean): Boolean
     # getApplicationById(id: ID!): Application
     # getApplications(orderBy: ApplicationOrderBy): [Application]
   }
 
   extend type Mutation {
     requestAccessToken(locale: String!, email: String!, seed: String!): String
+    requestAdminAccessToken(locale: String!, email: String!, seed: String!): String
     verifyAccessToken(email: String!, seed: String!, verificationCode: String!): AccessToken
 
     # updateApplication(id: ID!, slug: String!, locale: String!, localisedPageInput: LocalisedPageInput, schemaDefinitionInputs: [SchemaDefinitionInput], localisedFieldInputs: [LocalisedFieldInput], unlocalisedFieldInputs: [UnlocalisedFieldInput]): Application
@@ -122,7 +124,7 @@ const resolvers = {
 
       // const {email, token} = args.accessToken;
 
-      return await isTokenValid(args.accessToken);
+      return await isTokenValid(args.accessToken, args.requireAdminAccess === true);
     },
     // getPages: (root, args, context, info) => {
 
@@ -251,6 +253,116 @@ const resolvers = {
   },
 
   Mutation: {
+    requestAdminAccessToken: async (root, args, context, info) => {
+      console.log('requestAdminAccessToken', args);
+
+      const sgMail = require('@sendgrid/mail');
+      
+
+      let current = Date.now();
+
+      
+      const email = args.email.trim();
+      const seed = args.seed.trim();
+
+      if (!_.isEmail(email)) {
+        throw('The email address is invalid.');
+      }
+
+      if (_.isEmpty(seed)) {
+        throw(`Seed cannot be empty.`);
+      }
+
+
+      const adminEmails = await await AdminEmail.find({
+        email: email.toLowerCase(),
+        deletedAt: {
+          $exists: false
+        }
+      });
+
+
+      if (adminEmails.length === 0) {
+        throw(`${email} does not have admin rights.`);
+      }
+      
+      
+
+      const token = randomstring.generate({
+          length: 64,
+          readable: true,
+          charset: 'abcdefghijklmnopqrstuvwzyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@_-~.?*&^%#()'
+        });
+
+      const verificationCode = `${randomstring.generate({
+          length: 3,
+          charset: 'alphabetic',
+          capitalization: 'uppercase',
+          readable: true
+        })}-${randomstring.generate({
+          length: 3,
+          charset: 'alphanumeric',
+          capitalization: 'uppercase',
+          readable: true
+        })}-${randomstring.generate({
+          length: 3,
+          charset: 'alphanumeric',
+          capitalization: 'uppercase',
+          readable: true
+        })}`;
+
+      const accessToken = await AccessToken.create({
+        createdAt: current,
+        seed,
+        email,
+        token,
+        verificationCode
+      });
+
+      const link = `${process.env.APP_URL}/${args.locale.trim()}/admin/verify/${accessToken.verificationCode}/${accessToken.email.replace('@', '%40')}/`;
+
+
+      const msg = {
+        from: `International Blockchain Olympiad <no-reply@ibcol.org>`,
+        to: `${email}`,
+        subject: `IBCOL - Admin Login Verification (seed: "${seed}")`,
+        text: `
+        Hi IBCOL admin,
+        We have received an admin login attempt with the following seed: 
+        
+        ====================================
+        
+        ${seed}
+        
+        ====================================
+
+
+        To complete the login process, please click the button below:
+
+        ${link}
+
+
+        You can also enter the following verification code into the login form:
+
+        ${verificationCode}
+        
+
+
+        
+        International Blockchain Olympiad
+        `,
+        html: `<!doctype html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head> <title> </title> <!--[if !mso]><!-- --> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <!--<![endif]--> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1"> <style type="text/css"> #outlook a { padding: 0; } .ReadMsgBody { width: 100%; } .ExternalClass { width: 100%; } .ExternalClass * { line-height: 100%; } body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; } table, td { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; } img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; } p { display: block; margin: 13px 0; } </style> <!--[if !mso]><!--> <style type="text/css"> @media only screen and (max-width:480px) { @-ms-viewport { width: 320px; } @viewport { width: 320px; } } </style> <!--<![endif]--> <!--[if mso]> <xml> <o:OfficeDocumentSettings> <o:AllowPNG/> <o:PixelsPerInch>96</o:PixelsPerInch> </o:OfficeDocumentSettings> </xml> <![endif]--> <!--[if lte mso 11]> <style type="text/css"> .outlook-group-fix { width:100% !important; } </style> <![endif]--> <style type="text/css"> @media only screen and (min-width:480px) { .mj-column-per-100 { width: 100% !important; max-width: 100%; } } </style> <style type="text/css"> @media only screen and (max-width:480px) { table.full-width-mobile { width: 100% !important; } td.full-width-mobile { width: auto !important; } } </style></head><body> <div style=""> <!--[if mso | IE]> <table align="center" border="0" cellpadding="0" cellspacing="0" class="" style="width:600px;" width="600" > <tr> <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"> <![endif]--> <div style="Margin:0px auto;max-width:600px;"> <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;"> <tbody> <tr> <td style="direction:ltr;font-size:0px;padding:20px 0;text-align:center;vertical-align:top;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"> <tr> <td class="" style="vertical-align:top;width:600px;" > <![endif]--> <div class="mj-column-per-100 outlook-group-fix" style="font-size:13px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"> <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%"> <tr> <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;"> <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0px;"> <tbody> <tr> <td style="width:250px;"> <img height="auto" src="${process.env.APP_URL}/static/images/logo-international-blockchain-olympiad-(ibcol)-subpage.png" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:100%;" width="250" /> </td> </tr> </tbody> </table> </td> </tr> <tr> <td style="font-size:0px;word-break:break-word;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td height="40" style="vertical-align:top;height:40px;"> <![endif]--> <div style="height:40px;"> &nbsp; </div> <!--[if mso | IE]> </td></tr></table> <![endif]--> </td> </tr> <tr> <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;"> <div style="font-family:helvetica;font-size:16px;line-height:1;text-align:left;color:#000000;"> Hello <b>admin</b>, </div> </td> </tr> <tr> <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;"> <div style="font-family:helvetica;font-size:16px;line-height:1;text-align:left;color:#000000;"> We have received a login attempt with the following seed: </div> </td> </tr> </table> </div> <!--[if mso | IE]> </td> </tr> </table> <![endif]--> </td> </tr> </tbody> </table> </div> <!--[if mso | IE]> </td> </tr> </table> <table align="center" border="0" cellpadding="0" cellspacing="0" class="" style="width:600px;" width="600" > <tr> <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"> <![endif]--> <div style="Margin:0px auto;max-width:600px;"> <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;"> <tbody> <tr> <td style="direction:ltr;font-size:0px;padding:20px 0;padding-left:20px;padding-right:20px;text-align:center;vertical-align:top;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"> <tr> <td class="" style="vertical-align:top;width:560px;" > <![endif]--> <div class="mj-column-per-100 outlook-group-fix" style="font-size:13px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"> <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#eeeeee;vertical-align:top;" width="100%"> <tr> <td align="center" style="font-size:0px;padding:10px 25px;padding-top:18px;padding-bottom:15px;word-break:break-word;"> <div style="font-family:helvetica;font-size:20px;line-height:1;text-align:center;color:#000000;"> <b>${seed}</b> </div> </td> </tr> </table> </div> <!--[if mso | IE]> </td> </tr> </table> <![endif]--> </td> </tr> </tbody> </table> </div> <!--[if mso | IE]> </td> </tr> </table> <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td height="25" style="vertical-align:top;height:25px;"> <![endif]--> <div style="height:25px;"> &nbsp; </div> <!--[if mso | IE]> </td></tr></table> <table align="center" border="0" cellpadding="0" cellspacing="0" class="" style="width:600px;" width="600" > <tr> <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"> <![endif]--> <div style="Margin:0px auto;max-width:600px;"> <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;"> <tbody> <tr> <td style="direction:ltr;font-size:0px;padding:20px 0;text-align:center;vertical-align:top;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"> <tr> <td class="" style="vertical-align:top;width:600px;" > <![endif]--> <div class="mj-column-per-100 outlook-group-fix" style="font-size:13px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"> <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%"> <tr> <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;"> <div style="font-family:helvetica;font-size:16px;line-height:1;text-align:left;color:#000000;"> To complete the login process, please click the button below: </div> </td> </tr> <tr> <td style="font-size:0px;word-break:break-word;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td height="25" style="vertical-align:top;height:25px;"> <![endif]--> <div style="height:25px;"> &nbsp; </div> <!--[if mso | IE]> </td></tr></table> <![endif]--> </td> </tr> <tr> <td align="center" vertical-align="middle" style="font-size:0px;padding:0;word-break:break-word;"> <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;line-height:100%;"> <tr> <td align="center" bgcolor="#000000" role="presentation" style="border:none;border-radius:10px;cursor:auto;padding:18px 80px;background:#000000;" valign="middle"> <a href="${link}" style="background:#000000;color:white;font-family:Helvetica;font-size:15px;font-weight:600;line-height:14px;Margin:0;text-decoration:none;text-transform:uppercase;" target="_blank"> Verify </a> </td> </tr> </table> </td> </tr> <tr> <td style="font-size:0px;word-break:break-word;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td height="50" style="vertical-align:top;height:50px;"> <![endif]--> <div style="height:50px;"> &nbsp; </div> <!--[if mso | IE]> </td></tr></table> <![endif]--> </td> </tr> <tr> <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;"> <div style="font-family:helvetica;font-size:16px;line-height:1;text-align:left;color:#000000;"> You can also enter the following verification code into the login form: </div> </td> </tr> <tr> <td style="font-size:0px;word-break:break-word;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td height="30" style="vertical-align:top;height:30px;"> <![endif]--> <div style="height:30px;"> &nbsp; </div> <!--[if mso | IE]> </td></tr></table> <![endif]--> </td> </tr> <tr> <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;"> <div style="font-family:helvetica;font-size:26px;line-height:1;text-align:center;color:#000000;"> <b>${verificationCode}</b> </div> </td> </tr> <tr> <td style="font-size:0px;word-break:break-word;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td height="45" style="vertical-align:top;height:45px;"> <![endif]--> <div style="height:45px;"> &nbsp; </div> <!--[if mso | IE]> </td></tr></table> <![endif]--> </td> </tr> <tr> <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;"> <div style="font-family:helvetica;font-size:14px;line-height:1;text-align:left;color:#000000;"> International Blockchain Olympiad </div> </td> </tr> </table> </div> <!--[if mso | IE]> </td> </tr> </table> <![endif]--> </td> </tr> </tbody> </table> </div> <!--[if mso | IE]> </td> </tr> </table> <table align="center" border="0" cellpadding="0" cellspacing="0" class="" style="width:600px;" width="600" > <tr> <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"> <![endif]--> <div style="Margin:0px auto;max-width:600px;"> <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;"> <tbody> <tr> <td style="direction:ltr;font-size:0px;padding:20px 0;text-align:center;vertical-align:top;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"> <tr> <td class="" style="vertical-align:top;width:600px;" > <![endif]--> <div class="mj-column-per-100 outlook-group-fix" style="font-size:13px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;"> <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%"> <tr> <td style="font-size:0px;word-break:break-word;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td height="15" style="vertical-align:top;height:15px;"> <![endif]--> <div style="height:15px;"> &nbsp; </div> <!--[if mso | IE]> </td></tr></table> <![endif]--> </td> </tr> <tr> <td style="font-size:0px;padding:10px 25px;word-break:break-word;"> <p style="border-top:solid 1px #666666;font-size:1;margin:0px auto;width:100%;"> </p> <!--[if mso | IE]> <table align="center" border="0" cellpadding="0" cellspacing="0" style="border-top:solid 1px #666666;font-size:1;margin:0px auto;width:550px;" role="presentation" width="550px" > <tr> <td style="height:0;line-height:0;"> &nbsp; </td> </tr> </table> <![endif]--> </td> </tr> <tr> <td style="font-size:0px;word-break:break-word;"> <!--[if mso | IE]> <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td height="35" style="vertical-align:top;height:35px;"> <![endif]--> <div style="height:35px;"> &nbsp; </div> <!--[if mso | IE]> </td></tr></table> <![endif]--> </td> </tr> <tr> <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;"> <div style="font-family:helvetica;font-size:12px;line-height:1;text-align:left;color:#6e6e6e;"> If you didn't attempt to log in or if the seed doesn't match, please ignore this email. </div> </td> </tr> </table> </div> <!--[if mso | IE]> </td> </tr> </table> <![endif]--> </td> </tr> </tbody> </table> </div> <!--[if mso | IE]> </td> </tr> </table> <![endif]--> </div></body></html>`
+      }
+
+
+
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      
+      const sgResult = await sgMail.send(msg);
+      
+      return email;
+
+    },
     requestAccessToken: async (root, args, context, info) => {
       console.log('requestAccessToken', args);
 

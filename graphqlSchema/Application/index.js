@@ -137,7 +137,7 @@ const patchProjectOutputs = (application) => {
 const typeDefs = `
   extend type Query {
     # getApplicationById(id: ID!): Application
-    getApplicationsAsAdmin(accessToken: TokenInput!): [Application]!
+    getApplicationsAsAdmin: [Application]!
     getApplications(accessToken: TokenInput!): [Application]!
   }
 
@@ -338,9 +338,9 @@ const resolvers = {
 
     getApplicationsAsAdmin: async (root, args, context, info) => {
       console.log('getApplicationsAsAdmin', args);
-      
+      // console.log('context', context);
 
-      if (!await isTokenValid(args.accessToken, true)) {
+      if (!await isTokenValid(context.accessToken, true)) {
         throw('Invalid admin token.');
       }
 

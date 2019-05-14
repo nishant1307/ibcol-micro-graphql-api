@@ -207,6 +207,16 @@ const apolloServer = new ApolloServer({
   //   apiKey: "YOUR API KEY HERE"
   // }
 
+  context: ({ req }) => {
+
+    const token = req.headers.token || '';
+    const email = req.headers.email || '';
+    
+    
+    
+    return { accessToken: {token, email} };
+  },
+
   playground: (process.env.NODE_ENV === 'production') ? false : {
     settings: {
       'editor.theme': 'dark',
