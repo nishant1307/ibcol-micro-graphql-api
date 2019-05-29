@@ -10,8 +10,8 @@
     "NODE_ENV": "development",
     "MONGO_URL": "@ibcol-mongo-url-dev",
     "APP_URL": "http://localhost:3000",
-    "FILEPOND_API_URL": "http://localhost:4004",
-    "FILEPOND_API_ENDPOINT": "/",
+    "FILEPOND_API_URL": "http://localhost:3000",
+    "FILEPOND_API_ENDPOINT": "/file/",
     "SENDGRID_API_KEY": "@ibcol-sendgrid-api"
   },
   "builds": [{ "src": "index.js", "use": "@now/node-server" }],
