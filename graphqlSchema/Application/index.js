@@ -15,7 +15,7 @@ const generateUniqueReference = async () => {
     charset: 'alphanumeric',
     capitalization: 'uppercase',
     readable: true
-  })}${timestamp ? Date.now(): ''}`;
+  })}`;
 
 
   
@@ -59,9 +59,9 @@ const getOneApplicationByRef = (ref) => {
 
 const storeFile = async (fileId) => {
   console.log(`requesting to storeFile ${fileId}...`);
-
+  
   const result = await axios.put(`${process.env.FILEPOND_API_URL}${process.env.FILEPOND_API_ENDPOINT}`, fileId);
-  // console.log(result);
+  console.log(result);
   return result;
 
 }
