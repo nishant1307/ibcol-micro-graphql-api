@@ -19,13 +19,7 @@
 		<mj-spacer height="25px" />
     <mj-section>
       <mj-column>
-        <mj-text font-size="16px" color="#000" font-family="helvetica">To complete the login process, please click the button below:</mj-text>
-        <mj-spacer height="25px" />
-        <mj-button font-size="15px"font-family="Helvetica" font-weight="600" background-color="#000" color="white" text-transform="uppercase" inner-padding="18px 80px" line-height="14px" border-radius="10px" href="#" padding="0">
-              Verify
-        </mj-button>
-        <mj-spacer height="50px" />
-        <mj-text font-size="16px" color="#000" font-family="helvetica">You can also enter the following verification code into the login form:</mj-text>
+        <mj-text font-size="16px" color="#000" font-family="helvetica">To complete the login process, please enter the following verification code into the login form:</mj-text>
         <mj-spacer height="30px" />
         <mj-text font-size="26px" align="center" color="#000" font-family="helvetica"><b>XXX-XXX-XXX</b></mj-text>
         <mj-spacer height="45px" />
