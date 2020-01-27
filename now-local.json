@@ -8,7 +8,7 @@
   "env": {
     "ENV": "dev",
     "NODE_ENV": "development",
-    "MONGO_URL": "@ibcol-mongo-url-dev",
+    "MONGO_URL": "mongodb://localhost:27017/ibcol-backend",
     "APP_URL": "http://localhost:3000",
     "FILEPOND_API_URL": "http://localhost:3000",
     "FILEPOND_API_ENDPOINT": "/file/",

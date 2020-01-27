@@ -1,3 +1,4 @@
 node_modules
 *.env.*
 now-secrets.json
+package-lock.json
